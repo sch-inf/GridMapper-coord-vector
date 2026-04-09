@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tactical Grid Mapper</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Rajdhani:wght@300;500;700&display=swap');
+        :root { --neon: #00f3ff; --grid-size: 50px; }
+        body { background: #060b13; color: #e0e0e0; font-family: 'Rajdhani', sans-serif; }
+        h1, h2, .font-orb { font-family: 'Orbitron', sans-serif; text-transform: uppercase; letter-spacing: 2px; }
+        .neon-text { color: var(--neon); text-shadow: 0 0 5px var(--neon); }
+        .neon-box { border: 1px solid var(--neon); box-shadow: 0 0 10px rgba(0, 243, 255, 0.3); }
+        #grid-overlay {
+            background-image: linear-gradient(to right, rgba(0, 243, 255, 0.15) 1px, transparent 1px),
+                              linear-gradient(to bottom, rgba(0, 243, 255, 0.15) 1px, transparent 1px);
+            background-size: var(--grid-size) var(--grid-size);
+        }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: var(--neon); border-radius: 10px; }
+        #map-container { transform-origin: 0 0; transition: transform 0.1s ease-out; }
+        
+        /* Ефект для прев'ю карти */
+        .map-preview-card {
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        .map-preview-card:hover {
+            border-color: var(--neon);
+            box-shadow: 0 0 20px rgba(0, 243, 255, 0.4);
+            transform: translateY(-5px);
+        }
+    </style>
+</head>
+<body class="h-screen flex flex-col overflow-hidden">
+
+    <header class="p-4 border-b border-cyan-900/50 flex justify-between items-center bg-black/80 backdrop-blur-md z-50">
+        <div class="flex items-center gap-6">
+            <h1 class="text-xl neon-text">Tactical Mapper</h1>
+            <input type="file" id="file-input" accept="image/*" class="hidden">
+        </div>
+        <div class="flex gap-6 items-center">
+            <div class="flex items-center gap-2 bg-cyan-950/30 px-3 py-1 rounded border border-cyan-900/50">
+                <span class="text-[10px] text-cyan-500 font-bold uppercase">Zoom:</span>
+                <input type="range" id="zoom-range" min="0.2" max="2" step="0.1" value="1" class="w-24 accent-cyan-400">
+                <span id="zoom-val" class="text-xs font-mono w-8 text-center">100%</span>
+            </div>
+            <button id="btn-reset-all" class="text-xs text-red-500 hover:text-red-400 uppercase font-bold px-3 py-1 border border-red-900/30 rounded hover:bg-red-950/30 transition-colors">Очистити</button>
+        </div>
+    </header>
+
+    <main class="flex flex-1 overflow-hidden">
+        <div id="viewport" class="flex-1 overflow-auto custom-scrollbar bg-[radial-gradient(circle,#0a141e_0%,#000_100%)] relative">
+            <div id="map-wrapper" class="p-10 inline-block min-w-full min-h-full">
+                <div id="map-container" class="hidden relative neon-box cursor-crosshair">
+                    <img id="map-image" src="" alt="Map" class="block pointer-events-none max-w-none">
+                    <div id="grid-overlay" class="absolute inset-0 pointer-events-none z-10"></div>
+                    <div id="grid-labels" class="absolute inset-0 pointer-events-none z-10 text-[10px] text-cyan-500/40 font-orb"></div>
+                    <svg id="lines-svg" class="absolute inset-0 pointer-events-none z-20 w-full h-full"></svg>
+                    <div id="points-layer" class="absolute inset-0 z-30"></div>
+                </div>
+                
+                <div id="upload-prompt" class="mx-auto w-[600px] mt-10 p-10 text-center border-2 border-dashed border-cyan-900/50 bg-black/40 rounded-xl backdrop-blur-sm">
+                    <p class="text-lg font-orb text-cyan-500 mb-8 uppercase tracking-widest">Система очікує дані</p>
+                    
+                    <div class="grid grid-cols-1 gap-8">
+                        <!-- Секція з наявною картою -->
+                        <div class="space-y-4 text-left">
+                            <h3 class="text-[10px] text-cyan-600 font-bold uppercase tracking-[0.2em] border-b border-cyan-900/50 pb-2">Оберіть наявну карту</h3>
+                            <div onclick="loadPredefinedMap('your-map-image.jpg')" class="map-preview-card cursor-pointer border border-cyan-900 bg-black rounded-lg p-2 group">
+                                <div class="aspect-video bg-cyan-950/50 rounded flex items-center justify-center mb-3 relative overflow-hidden">
+                                    <span class="text-cyan-700 text-xs font-orb group-hover:text-cyan-400 transition-colors">PREVIEW_MAP_01</span>
+                                    <!-- Ви зможете замінити цей div на <img> коли буде посилання -->
+                                    <!-- <img src="your-map-image.jpg" class="w-full h-full object-cover"> -->
+                                </div>
+                                <div class="flex justify-between items-center px-1">
+                                    <span class="text-xs text-cyan-200 font-orb uppercase">Карта міста v1.0</span>
+                                    <span class="text-[9px] bg-cyan-900 text-cyan-400 px-2 py-0.5 rounded">READY</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="relative py-4">
+                            <div class="absolute inset-0 flex items-center"><div class="w-full border-t border-cyan-900/50"></div></div>
+                            <div class="relative flex justify-center text-[10px] uppercase"><span class="bg-[#060b13] px-4 text-cyan-700 font-bold tracking-widest">АБО</span></div>
+                        </div>
+
+                        <!-- Кнопка завантаження -->
+                        <div class="flex justify-center">
+                            <button onclick="document.getElementById('file-input').click()" class="w-full border-2 border-cyan-400 text-cyan-400 px-10 py-4 rounded-lg font-bold hover:bg-cyan-400 hover:text-black transition-all uppercase tracking-widest">ЗАВАНТАЖИТИ ВЛАСНИЙ ФАЙЛ</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <aside class="w-80 bg-[#060b13]/95 backdrop-blur-xl border-l border-cyan-900/30 flex flex-col z-50">
+            <div class="p-6 border-b border-cyan-900/30">
+                <h2 class="text-xs text-cyan-500 font-bold tracking-widest uppercase">Grid Analysis</h2>
+                <p class="text-[10px] text-gray-500 italic mt-1 uppercase">1u = 50px | Origin: Bottom-Left</p>
+            </div>
+            <div id="coords-list" class="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar"></div>
+            <div class="p-4 bg-black/40 border-t border-cyan-900/30 text-center">
+                <div class="h-1 w-full bg-cyan-950 rounded-full overflow-hidden mb-2">
+                    <div id="status-bar" class="h-full bg-cyan-400 w-full animate-pulse shadow-[0_0_10px_#00f3ff]"></div>
+                </div>
+                <span class="text-[9px] text-cyan-800 uppercase font-bold tracking-tighter">System Active</span>
+            </div>
+        </aside>
+    </main>
+
+    <script>
+        const mapContainer = document.getElementById('map-container');
+        const mapImage = document.getElementById('map-image');
+        const pointsLayer = document.getElementById('points-layer');
+        const linesSvg = document.getElementById('lines-svg');
+        const coordsList = document.getElementById('coords-list');
+        const gridLabels = document.getElementById('grid-labels');
+        const zoomRange = document.getElementById('zoom-range');
+        const zoomVal = document.getElementById('zoom-val');
+        const btnResetAll = document.getElementById('btn-reset-all');
+        
+        const GRID = 50;
+        let points = [];
+        let dragIdx = null;
+        let currentScale = 1;
+
+        // Функція для завантаження наявної карти
+        window.loadPredefinedMap = (url) => {
+            mapImage.src = url;
+        };
+
+        // Вибір файлу вручну
+        document.getElementById('file-input').onchange = e => {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = ev => mapImage.src = ev.target.result;
+                reader.readAsDataURL(file);
+            }
+        };
+
+        mapImage.onload = () => {
+            document.getElementById('upload-prompt').style.display = 'none';
+            mapContainer.classList.remove('hidden');
+            const w = mapImage.naturalWidth;
+            const h = mapImage.naturalHeight;
+            mapContainer.style.width = w + 'px';
+            mapContainer.style.height = h + 'px';
+            
+            // Налаштування сітки
+            document.getElementById('grid-overlay').style.backgroundPosition = `0px ${h % GRID}px`;
+            
+            // Генерація міток осей
+            gridLabels.innerHTML = '';
+            for(let x=0; x<=w; x+=GRID*2) gridLabels.innerHTML += `<span style="position:absolute;left:${x+5}px;bottom:5px">${x/GRID}</span>`;
+            for(let y=0; y<=h; y+=GRID*2) gridLabels.innerHTML += `<span style="position:absolute;left:5px;bottom:${y+5}px">${y/GRID}</span>`;
+            render();
+        };
+
+        // Логіка масштабування
+        zoomRange.oninput = (e) => {
+            currentScale = parseFloat(e.target.value);
+            zoomVal.innerText = Math.round(currentScale * 100) + '%';
+            mapContainer.style.transform = `scale(${currentScale})`;
+        };
+
+        // Додавання точок
+        mapContainer.onmousedown = e => {
+            if (e.target.closest('.point')) return;
+            
+            const r = mapContainer.getBoundingClientRect();
+            const x = (e.clientX - r.left) / currentScale;
+            const y = (e.clientY - r.top) / currentScale;
+            
+            points.push({ name: getLabel(points.length), x, y });
+            render();
+        };
+
+        const getLabel = i => {
+            let l = "";
+            let idx = i;
+            while (idx >= 0) { 
+                l = String.fromCharCode((idx % 26) + 65) + l; 
+                idx = Math.floor(idx / 26) - 1; 
+            }
+            return l;
+        };
+
+        window.deletePoint = (idx) => {
+            points.splice(idx, 1);
+            points.forEach((p, i) => p.name = getLabel(i));
+            render();
+        };
+
+        btnResetAll.addEventListener('click', (e) => {
+            e.preventDefault();
+            if (points.length === 0) return;
+            if (confirm('Видалити всі тактичні мітки?')) {
+                points = [];
+                render();
+            }
+        });
+
+        function render() {
+            pointsLayer.innerHTML = ''; 
+            linesSvg.innerHTML = '';
+            coordsList.innerHTML = points.length ? '' : '<p class="text-center text-cyan-900 text-[10px] py-20 uppercase font-orb opacity-50">Сигнали відсутні<br>Клікніть на карту</p>';
+
+            points.forEach((p, i) => {
+                const dot = document.createElement('div');
+                dot.className = 'point absolute w-4 h-4 bg-cyan-400 border-2 border-white rounded-full -translate-x-1/2 -translate-y-1/2 shadow-[0_0_15px_#00f3ff] z-50 cursor-move';
+                dot.style.left = p.x + 'px';
+                dot.style.top = p.y + 'px';
+                dot.innerHTML = `<span class="absolute -top-6 left-1/2 -translate-x-1/2 text-cyan-400 font-bold font-orb text-sm whitespace-nowrap drop-shadow-md" style="pointer-events:none">${p.name}</span>`;
+                dot.onmousedown = e => { e.stopPropagation(); dragIdx = i; };
+                pointsLayer.appendChild(dot);
+
+                if (i < points.length - 1) {
+                    const n = points[i+1];
+                    const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+                    line.setAttribute("x1", p.x); line.setAttribute("y1", p.y);
+                    line.setAttribute("x2", n.x); line.setAttribute("y2", n.y);
+                    line.setAttribute("stroke", "var(--neon)"); line.setAttribute("stroke-width", "2");
+                    line.setAttribute("stroke-dasharray", "8,4"); line.setAttribute("opacity", "0.6");
+                    linesSvg.appendChild(line);
+                }
+
+                const card = document.createElement('div');
+                card.className = 'p-3 bg-cyan-950/20 border border-cyan-500/20 rounded-lg flex justify-between items-center group hover:border-cyan-400 transition-all cursor-default';
+                card.innerHTML = `
+                    <div class="flex items-center gap-3 font-mono">
+                        <span class="w-8 h-8 flex items-center justify-center bg-cyan-900 text-cyan-300 rounded-lg font-orb border border-cyan-700 shadow-inner">${p.name}</span>
+                        <div>
+                            <p class="text-[9px] text-cyan-600 font-bold uppercase tracking-widest leading-none mb-1">Vector Data</p>
+                            <p class="text-xs text-cyan-100 uppercase">X:${(p.x/GRID).toFixed(1)} Y:${((mapImage.naturalHeight-p.y)/GRID).toFixed(1)}</p>
+                        </div>
+                    </div>
+                    <button onclick="deletePoint(${i})" class="opacity-0 group-hover:opacity-100 text-red-500 hover:text-red-300 transition-all p-2 text-xl leading-none font-bold">×</button>`;
+                coordsList.appendChild(card);
+            });
+        }
+
+        window.onmousemove = e => {
+            if (dragIdx === null) return;
+            const r = mapContainer.getBoundingClientRect();
+            points[dragIdx].x = Math.max(0, Math.min((e.clientX - r.left) / currentScale, mapImage.naturalWidth));
+            points[dragIdx].y = Math.max(0, Math.min((e.clientY - r.top) / currentScale, mapImage.naturalHeight));
+            render();
+        };
+        window.onmouseup = () => dragIdx = null;
+    </script>
+</body>
+</html>
