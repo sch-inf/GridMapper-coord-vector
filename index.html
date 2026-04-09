@@ -196,10 +196,8 @@
         btnResetAll.addEventListener('click', (e) => {
             e.preventDefault();
             if (points.length === 0) return;
-            if (confirm('Видалити всі тактичні мітки?')) {
-                points = [];
-                render();
-            }
+            points = [];
+            render();            
         });
 
         function render() {
