@@ -38,7 +38,7 @@
 
     <header class="p-4 border-b border-cyan-900/50 flex justify-between items-center bg-black/80 backdrop-blur-md z-50">
         <div class="flex items-center gap-6">
-            <h1 class="text-xl neon-text">Tactical Mapper</h1>
+            <h1 class="text-xl neon-text">ЗАСТОСУНОК ДИСПЕТЧЕРА</h1>
             <input type="file" id="file-input" accept="image/*" class="hidden">
         </div>
         <div class="flex gap-6 items-center">
@@ -71,13 +71,11 @@
                             <h3 class="text-[10px] text-cyan-600 font-bold uppercase tracking-[0.2em] border-b border-cyan-900/50 pb-2">Оберіть наявну карту</h3>
                             <div onclick="loadPredefinedMap('SMART%20sity%20v1.jpg')" class="map-preview-card cursor-pointer border border-cyan-900 bg-black rounded-lg p-2 group">
                                 <div class="aspect-video bg-cyan-950/50 rounded flex items-center justify-center mb-3 relative overflow-hidden">
-                                    <span class="text-cyan-700 text-xs font-orb group-hover:text-cyan-400 transition-colors">SMARTCITY_MAP_01</span>
-                                   
                                     <img src="SMART%20sity%20v1.jpg" class="w-full h-full object-cover">
                                 </div>
                                 <div class="flex justify-between items-center px-1">
-                                    <span class="text-xs text-cyan-200 font-orb uppercase">Карта міста v1.0</span>
-                                    <span class="text-[9px] bg-cyan-900 text-cyan-400 px-2 py-0.5 rounded">READY</span>
+                                    <span class="text-xs text-cyan-200 font-orb uppercase">Місто SMARTCITY v1.0</span>
+                                    <span class="text-[9px] bg-cyan-900 text-cyan-400 px-2 py-0.5 rounded">ГОТОВО</span>
                                 </div>
                             </div>
                         </div>
@@ -99,14 +97,14 @@
         <aside class="w-80 bg-[#060b13]/95 backdrop-blur-xl border-l border-cyan-900/30 flex flex-col z-50">
             <div class="p-6 border-b border-cyan-900/30">
                 <h2 class="text-xs text-cyan-500 font-bold tracking-widest uppercase">Grid Analysis</h2>
-                <p class="text-[10px] text-gray-500 italic mt-1 uppercase">1u = 50px | Origin: Bottom-Left</p>
+                <p class="text-[10px] text-gray-500 italic mt-1 uppercase">1u = 250 метрів | Початок: Низ-Ліво</p>
             </div>
             <div id="coords-list" class="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar"></div>
             <div class="p-4 bg-black/40 border-t border-cyan-900/30 text-center">
                 <div class="h-1 w-full bg-cyan-950 rounded-full overflow-hidden mb-2">
                     <div id="status-bar" class="h-full bg-cyan-400 w-full animate-pulse shadow-[0_0_10px_#00f3ff]"></div>
                 </div>
-                <span class="text-[9px] text-cyan-800 uppercase font-bold tracking-tighter">System Active</span>
+                <span class="text-[9px] text-cyan-800 uppercase font-bold tracking-tighter">Система працює</span>
             </div>
         </aside>
     </main>
